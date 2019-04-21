@@ -1,25 +1,33 @@
 package main
 
 import (
-	"log"
-	"net/http"
-	"os"
-
 	"github.com/99designs/gqlgen/handler"
-	"github.com/satoukick/gin-graphql"
+	"github.com/gin-gonic/gin"
+	"github.com/satoukick/ginghql"
 )
 
 const defaultPort = "8080"
 
-func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+func graphqlHandler() gin.HandlerFunc {
+	h := handler.GraphQL(ginghql.NewExecutableSchema(ginghql.Config{Resolvers: &ginghql.Resolver{}}))
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
 	}
+}
 
-	http.Handle("/", handler.Playground("GraphQL playground", "/query"))
-	http.Handle("/query", handler.GraphQL(gin_graphql.NewExecutableSchema(gin_graphql.Config{Resolvers: &gin_graphql.Resolver{}})))
+func playgroundHandler() gin.HandlerFunc {
+	h := handler.Playground("GraphQL", "/query")
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+func main() {
+	r := gin.Default()
+	r.POST("/query", graphqlHandler())
+	r.GET("/", playgroundHandler())
+	r.Run()
+
 }
